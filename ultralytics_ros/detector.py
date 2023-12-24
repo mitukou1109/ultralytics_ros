@@ -26,7 +26,7 @@ class Detector(rclpy.node.Node):
         )
         self.result_image_pub = self.create_publisher(
             sensor_msgs.msg.Image,
-            "/result/image_raw",
+            "~/result/image_raw",
             5,
         )
 
@@ -70,6 +70,7 @@ class Detector(rclpy.node.Node):
                     conf=model_conf_threshold,
                     iou=model_iou_threshold,
                     imgsz=model_image_size,
+                    verbose=False,
                 )[0]
                 result_row_image_chunks.append(result.plot())
             result_image_chunks.append(np.hstack(result_row_image_chunks))

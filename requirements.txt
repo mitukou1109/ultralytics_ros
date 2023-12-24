@@ -1,2 +1,2 @@
 ultralytics
-typing-extensions>=4.0.0
+typing-extensions>=4.0.0   # https://typing-extensions.readthedocs.io/en/latest/#Self
