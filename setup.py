@@ -18,6 +18,6 @@ setup(
     license="BSD",
     tests_require=["pytest"],
     entry_points={
-        "console_scripts": [],
+        "console_scripts": ["detector = ultralytics_ros.detector:main"],
     },
 )
