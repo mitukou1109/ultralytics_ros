@@ -1,9 +1,2 @@
 ultralytics
 typing-extensions>=4.0.0   # https://typing-extensions.readthedocs.io/en/latest/#Self
---find-links https://github.com/oberluz/pycoral/releases/download/2.13.0/pycoral-2.13.0-cp310-cp310-linux_x86_64.whl
---find-links https://github.com/oberluz/pycoral/releases/download/2.13.0/tflite_runtime-2.13.0-cp310-cp310-linux_x86_64.whl
-pycoral==2.13.0
-tflite-runtime==2.13.0
-tensorflow-cpu==2.13.0
-tflite-support==0.4.4
-onnx2tf<=1.17.5   # https://github.com/PINTO0309/onnx2tf/issues/515
