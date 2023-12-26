@@ -9,7 +9,7 @@ import ultralytics.engine.results
 
 
 class Detector(rclpy.node.Node):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("detector")
 
         self.declare_parameter("yolo_model", "yolov8n.pt")
@@ -18,26 +18,28 @@ class Detector(rclpy.node.Node):
         self.declare_parameter("model_iou_threshold", 0.7)
         self.declare_parameter("model_image_size", 640)
 
-        self.source_image_sub = self.create_subscription(
-            sensor_msgs.msg.Image,
-            "/image_raw",
-            self.source_image_callback,
-            rclpy.qos.qos_profile_sensor_data,
-        )
-        self.result_image_pub = self.create_publisher(
-            sensor_msgs.msg.Image,
-            "~/result/image_raw",
-            5,
-        )
-
-        self.cv_bridge = cv_bridge.CvBridge()
-
         self.model = ultralytics.YOLO(
             self.get_parameter("yolo_model").get_parameter_value().string_value,
             task="detect",
         )
 
-    def source_image_callback(self, msg: sensor_msgs.msg.Image):
+        self.cv_bridge = cv_bridge.CvBridge()
+
+        source_image_sub_qos = rclpy.qos.qos_profile_sensor_data
+        source_image_sub_qos.depth = 1
+        self.source_image_sub = self.create_subscription(
+            sensor_msgs.msg.Image,
+            "/image_raw",
+            self.source_image_callback,
+            source_image_sub_qos,
+        )
+        self.result_image_pub = self.create_publisher(
+            sensor_msgs.msg.Image,
+            "~/result_image",
+            5,
+        )
+
+    def source_image_callback(self, msg: sensor_msgs.msg.Image) -> None:
         source_subimage_size = (
             self.get_parameter("source_subimage_size")
             .get_parameter_value()
