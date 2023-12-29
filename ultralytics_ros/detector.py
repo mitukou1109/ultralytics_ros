@@ -15,10 +15,10 @@ class Detector(rclpy.node.Node):
 
         self.declare_parameter("yolo_model", "yolov8n.pt")
         self.declare_parameter("divide_source_image", False)
-        self.declare_parameter("source_subimage_size", 640)
+        self.declare_parameter("source_subimage_size", "640")
         self.declare_parameter("model_conf_threshold", 0.25)
         self.declare_parameter("model_iou_threshold", 0.7)
-        self.declare_parameter("model_image_size", 640)
+        self.declare_parameter("model_image_size", "640")
 
         self.model = ultralytics.YOLO(
             self.get_parameter("yolo_model").get_parameter_value().string_value,
@@ -51,14 +51,15 @@ class Detector(rclpy.node.Node):
             self.get_parameter("divide_source_image").get_parameter_value().bool_value
         )
         if divide_source_image:
-            source_subimage_size = (
+            source_subimage_size: int | tuple = eval(
                 self.get_parameter("source_subimage_size")
                 .get_parameter_value()
-                .integer_value
+                .string_value
             )
-            source_subimage_shape = (source_subimage_size, source_subimage_size)
+            if type(source_subimage_size) is int:
+                source_subimage_size = (source_subimage_size, source_subimage_size)
         else:
-            source_subimage_shape = (msg.height, msg.width)
+            source_subimage_size = (msg.height, msg.width)
 
         model_conf_threshold = (
             self.get_parameter("model_conf_threshold")
@@ -68,24 +69,27 @@ class Detector(rclpy.node.Node):
         model_iou_threshold = (
             self.get_parameter("model_iou_threshold").get_parameter_value().double_value
         )
-        model_image_size = (
-            self.get_parameter("model_image_size").get_parameter_value().integer_value
+
+        model_image_size: int | tuple = eval(
+            self.get_parameter("model_image_size").get_parameter_value().string_value
         )
+        if type(model_image_size) is int:
+            model_image_size = (model_image_size, model_image_size)
 
         source_image = self.cv_bridge.imgmsg_to_cv2(msg, "bgr8")
 
         detections_msg = vision_msgs.msg.Detection2DArray()
         result_image_chunks = []
-        row_images = np.array_split(
+        row_images: list[np.ndarray] = np.array_split(
             source_image,
-            max(1, source_image.shape[0] // source_subimage_shape[0]),
+            max(1, source_image.shape[0] // source_subimage_size[0]),
             axis=0,
         )
         for row, row_image in enumerate(row_images):
             result_row_image_chunks = []
-            chunks = np.array_split(
+            chunks: list[np.ndarray] = np.array_split(
                 row_image,
-                max(1, row_image.shape[1] // source_subimage_shape[1]),
+                max(1, row_image.shape[1] // source_subimage_size[1]),
                 axis=1,
             )
             for col, chunk in enumerate(chunks):
