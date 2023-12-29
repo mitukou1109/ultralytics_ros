@@ -13,6 +13,7 @@ class Detector(rclpy.node.Node):
         super().__init__("detector")
 
         self.declare_parameter("yolo_model", "yolov8n.pt")
+        self.declare_parameter("divide_source_image", False)
         self.declare_parameter("source_subimage_size", 640)
         self.declare_parameter("model_conf_threshold", 0.25)
         self.declare_parameter("model_iou_threshold", 0.7)
@@ -40,11 +41,19 @@ class Detector(rclpy.node.Node):
         )
 
     def source_image_callback(self, msg: sensor_msgs.msg.Image) -> None:
-        source_subimage_size = (
-            self.get_parameter("source_subimage_size")
-            .get_parameter_value()
-            .integer_value
+        divide_source_image = (
+            self.get_parameter("divide_source_image").get_parameter_value().bool_value
         )
+        if divide_source_image:
+            source_subimage_size = (
+                self.get_parameter("source_subimage_size")
+                .get_parameter_value()
+                .integer_value
+            )
+            source_subimage_shape = (source_subimage_size, source_subimage_size)
+        else:
+            source_subimage_shape = (msg.height, msg.width)
+
         model_conf_threshold = (
             self.get_parameter("model_conf_threshold")
             .get_parameter_value()
