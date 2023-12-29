@@ -6,6 +6,7 @@ import rclpy.qos
 import sensor_msgs.msg
 import ultralytics
 import ultralytics.engine.results
+import vision_msgs.msg
 
 
 class Detector(rclpy.node.Node):
@@ -33,6 +34,11 @@ class Detector(rclpy.node.Node):
             "/image_raw",
             self.source_image_callback,
             source_image_sub_qos,
+        )
+        self.detections_pub = self.create_publisher(
+            vision_msgs.msg.Detection2DArray,
+            "~/detections",
+            5,
         )
         self.result_image_pub = self.create_publisher(
             sensor_msgs.msg.Image,
@@ -68,14 +74,21 @@ class Detector(rclpy.node.Node):
 
         source_image = self.cv_bridge.imgmsg_to_cv2(msg, "bgr8")
 
+        detections_msg = vision_msgs.msg.Detection2DArray()
         result_image_chunks = []
-        for row_image in np.array_split(
-            source_image, max(1, source_image.shape[0] // source_subimage_size), axis=0
-        ):
+        row_images = np.array_split(
+            source_image,
+            max(1, source_image.shape[0] // source_subimage_shape[0]),
+            axis=0,
+        )
+        for row, row_image in enumerate(row_images):
             result_row_image_chunks = []
-            for chunk in np.array_split(
-                row_image, max(1, row_image.shape[1] // source_subimage_size), axis=1
-            ):
+            chunks = np.array_split(
+                row_image,
+                max(1, row_image.shape[1] // source_subimage_shape[1]),
+                axis=1,
+            )
+            for col, chunk in enumerate(chunks):
                 result: ultralytics.engine.results.Results = self.model.predict(
                     chunk,
                     conf=model_conf_threshold,
@@ -83,9 +96,42 @@ class Detector(rclpy.node.Node):
                     imgsz=model_image_size,
                     verbose=False,
                 )[0]
+                for conf, cls, xywh in zip(
+                    result.boxes.conf, result.boxes.cls, result.boxes.xywh
+                ):
+                    class_id = result.names[int(cls)]
+                    hypothesis = vision_msgs.msg.ObjectHypothesis(
+                        class_id=class_id,
+                        score=float(conf),
+                    )
+                    object_center = vision_msgs.msg.Point2D(
+                        x=sum(map(lambda c: c.shape[1], chunks[:col])) + float(xywh[0]),
+                        y=sum(map(lambda c: c.shape[0], row_images[:row]))
+                        + float(xywh[1]),
+                    )
+                    bbox = vision_msgs.msg.BoundingBox2D(
+                        center=vision_msgs.msg.Pose2D(position=object_center),
+                        size_x=float(xywh[2]),
+                        size_y=float(xywh[3]),
+                    )
+                    detections_msg.detections.append(
+                        vision_msgs.msg.Detection2D(
+                            results=[
+                                vision_msgs.msg.ObjectHypothesisWithPose(
+                                    hypothesis=hypothesis
+                                )
+                            ],
+                            bbox=bbox,
+                            id=class_id,
+                        )
+                    )
                 result_row_image_chunks.append(result.plot())
             result_image_chunks.append(np.hstack(result_row_image_chunks))
         result_image = np.vstack(result_image_chunks)
+
+        detections_msg.header.stamp = self.get_clock().now().to_msg()
+        detections_msg.header.frame_id = msg.header.frame_id
+        self.detections_pub.publish(detections_msg)
 
         result_image_msg = self.cv_bridge.cv2_to_imgmsg(result_image, "bgr8")
         result_image_msg.header.stamp = self.get_clock().now().to_msg()
