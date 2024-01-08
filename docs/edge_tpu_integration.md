@@ -11,7 +11,7 @@ $ sudo apt update
 $ sudo apt install libedgetpu1-std edgetpu-compiler
 ```
 
-Make sure you have `/etc/udev/rules.d/99-edgetpu-accelerator.rules` after installation. If not, create it manually with the following content:
+Make sure you have `/usr/lib/udev/rules.d/60-libedgetpu1-std.rules` after installation. If not, create `/etc/udev/rules.d/99-edgetpu-accelerator.rules` manually with the following content:
 
 ```
 SUBSYSTEM=="usb",ATTRS{idVendor}=="1a6e",GROUP="plugdev"
@@ -38,7 +38,7 @@ You can test installation by running a demo inference:
 $ git clone https://github.com/google-coral/pycoral.git
 $ cd pycoral
 $ examples/install_requirements.sh classify_image.py
-$ rye run python examples/classify_image.py \
+$ python examples/classify_image.py \
 --model test_data/mobilenet_v2_1.0_224_inat_bird_quant_edgetpu.tflite \
 --labels test_data/inat_bird_labels.txt \
 --input test_data/parrot.jpg
