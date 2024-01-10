@@ -2,11 +2,14 @@ import cv_bridge
 import numpy as np
 import rclpy
 import rclpy.node
+import rclpy.publisher
 import rclpy.qos
+import rclpy.subscription
 import sensor_msgs.msg
 import ultralytics
 import ultralytics.engine.results
 import vision_msgs.msg
+import functools
 
 
 class Detector(rclpy.node.Node):
@@ -14,6 +17,7 @@ class Detector(rclpy.node.Node):
         super().__init__("detector")
 
         self.declare_parameter("yolo_model", "yolov8n.pt")
+        self.declare_parameter("image_topics", ["/image_raw"])
         self.declare_parameter("divide_source_image", False)
         self.declare_parameter("source_subimage_size", "640")
         self.declare_parameter("model_conf_threshold", 0.25)
@@ -27,26 +31,44 @@ class Detector(rclpy.node.Node):
 
         self.cv_bridge = cv_bridge.CvBridge()
 
-        source_image_sub_qos = rclpy.qos.qos_profile_sensor_data
-        source_image_sub_qos.depth = 1
-        self.source_image_sub = self.create_subscription(
-            sensor_msgs.msg.Image,
-            "/image_raw",
-            self.source_image_callback,
-            source_image_sub_qos,
+        image_topics = (
+            self.get_parameter("image_topics").get_parameter_value().string_array_value
         )
-        self.detections_pub = self.create_publisher(
-            vision_msgs.msg.Detection2DArray,
-            "~/detections",
-            5,
-        )
-        self.result_image_pub = self.create_publisher(
-            sensor_msgs.msg.Image,
-            "~/result_image",
-            5,
-        )
+        if image_topics:
+            self.detections_pubs: list[rclpy.publisher.Publisher] = []
+            self.result_image_pubs: list[rclpy.publisher.Publisher] = []
+            self.source_image_subs: list[rclpy.subscription.Subscription] = []
+            for i, image_topic in enumerate(image_topics):
+                self.detections_pubs.append(
+                    self.create_publisher(
+                        vision_msgs.msg.Detection2DArray,
+                        f"~/detections_{i}",
+                        5,
+                    )
+                )
+                self.result_image_pubs.append(
+                    self.create_publisher(
+                        sensor_msgs.msg.Image,
+                        f"~/result_image_{i}",
+                        5,
+                    )
+                )
+                source_image_sub_qos = rclpy.qos.qos_profile_sensor_data
+                source_image_sub_qos.depth = 1
+                self.source_image_subs.append(
+                    self.create_subscription(
+                        sensor_msgs.msg.Image,
+                        image_topic,
+                        functools.partial(self.source_image_callback, source_id=i),
+                        source_image_sub_qos,
+                    )
+                )
+        else:
+            self.get_logger().error("No image topics are given, exiting...")
+            self.destroy_node()
+            exit(1)
 
-    def source_image_callback(self, msg: sensor_msgs.msg.Image) -> None:
+    def source_image_callback(self, msg: sensor_msgs.msg.Image, source_id: int) -> None:
         divide_source_image = (
             self.get_parameter("divide_source_image").get_parameter_value().bool_value
         )
@@ -135,12 +157,12 @@ class Detector(rclpy.node.Node):
 
         detections_msg.header.stamp = self.get_clock().now().to_msg()
         detections_msg.header.frame_id = msg.header.frame_id
-        self.detections_pub.publish(detections_msg)
+        self.detections_pubs[source_id].publish(detections_msg)
 
         result_image_msg = self.cv_bridge.cv2_to_imgmsg(result_image, "bgr8")
         result_image_msg.header.stamp = self.get_clock().now().to_msg()
         result_image_msg.header.frame_id = msg.header.frame_id
-        self.result_image_pub.publish(result_image_msg)
+        self.result_image_pubs[source_id].publish(result_image_msg)
 
 
 def main(args: list[str] = None):
