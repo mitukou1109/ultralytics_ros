@@ -32,9 +32,7 @@ class SAM3(rclpy.node.Node):
     def __init__(self) -> None:
         super().__init__("segmentation")
 
-        model_file = (
-            self.declare_parameter("model_file", "sam3.pt").get_parameter_value().string_value
-        )
+        model_file = self.declare_parameter("model_file", "").get_parameter_value().string_value
         input_size = self.declare_parameter("input_size", 1008).get_parameter_value().integer_value
         confidence_threshold = (
             self.declare_parameter("confidence_threshold", 0.5).get_parameter_value().double_value
