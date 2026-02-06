@@ -35,6 +35,13 @@ colcon build --symlink-install
 
 ### SAM 3
 
+> [!IMPORTANT]
+> SAM 3 checkpoints must be downloaded manually. Follow the steps in the [SAM 3 documentation](https://docs.ultralytics.com/models/sam-3/#installation):
+>
+> 1. Request access on the [SAM 3 Hugging Face repo](https://huggingface.co/facebook/sam3)
+> 2. Download `sam3.pt` from [here](https://huggingface.co/facebook/sam3/resolve/main/sam3.pt?download=true)
+> 3. Place the file in your desired location (or in your working directory to use the default `model_file` parameter)
+
 ```bash
 source ~/ros2_ws/install/local_setup.bash
 ros2 run ultralytics_ros sam3_segmentation_node \
