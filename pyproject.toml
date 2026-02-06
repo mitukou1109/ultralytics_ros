@@ -1,0 +1,21 @@
+[project]
+name = "ultralytics-ros"
+version = "0.1.0"
+description = "ROS 2 wrapper for Ultralytics"
+readme = "README.md"
+authors = [
+    { name = "mitukou1109", email = "mitukou1109@gmail.com" }
+]
+requires-python = ">=3.10"
+dependencies = [
+    "numpy<2",
+    "ultralytics>=8.4.11",
+]
+
+[project.scripts]
+yolo_segmentation_node = "ultralytics_ros.segmentation.yolo:main"
+sam3_segmentation_node = "ultralytics_ros.segmentation.sam3:main"
+
+[build-system]
+requires = ["uv_build>=0.9.30,<0.10.0"]
+build-backend = "uv_build"
