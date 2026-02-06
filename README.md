@@ -40,7 +40,7 @@ colcon build --symlink-install
 >
 > 1. Request access on the [SAM 3 Hugging Face repo](https://huggingface.co/facebook/sam3)
 > 2. Download `sam3.pt` from [here](https://huggingface.co/facebook/sam3/resolve/main/sam3.pt?download=true)
-> 3. Place the file in your desired location (or in your working directory to use the default `model_file` parameter)
+> 3. Place the file in your desired location
 
 ```bash
 source ~/ros2_ws/install/local_setup.bash
@@ -101,8 +101,8 @@ Available nodes:
 
 | Parameter              | Type       | Default                      | Description                                                                                        |
 | ---------------------- | ---------- | ---------------------------- | -------------------------------------------------------------------------------------------------- |
-| `model_file`           | `string`   | `sam3.pt`                    | Path of model file                                                                                 |
-| `input_size`           | `int`      | `1008` (SAM 3), `640` (YOLO) | Input size for the model (pixels)                                                                  |
+| `model_file`           | `string`   | ` `                          | Path of model file                                                                                 |
+| `input_size`           | `int`      | `1008` (SAM 3), `640` (YOLO) | Input image size (pixels), smaller values increase inference speed but may reduce accuracy         |
 | `confidence_threshold` | `float`    | `0.5`                        | Minimum confidence threshold for mask filtering                                                    |
 | `use_half_precision`   | `bool`     | `True`                       | Use half precision for faster inference                                                            |
 | `text_prompt`          | `[string]` | `[]`                         | Text prompt for concept segmentation (SAM 3 and open-vocabulary models like YOLOE)                 |
