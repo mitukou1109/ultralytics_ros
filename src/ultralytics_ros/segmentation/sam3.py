@@ -33,24 +33,14 @@ class SAM3(rclpy.node.Node):
         super().__init__("segmentation")
 
         model_file = (
-            self.declare_parameter("model_file", "sam3.pt")
-            .get_parameter_value()
-            .string_value
+            self.declare_parameter("model_file", "sam3.pt").get_parameter_value().string_value
         )
-        input_size = (
-            self.declare_parameter("input_size", 1008)
-            .get_parameter_value()
-            .integer_value
-        )
+        input_size = self.declare_parameter("input_size", 1008).get_parameter_value().integer_value
         confidence_threshold = (
-            self.declare_parameter("confidence_threshold", 0.5)
-            .get_parameter_value()
-            .double_value
+            self.declare_parameter("confidence_threshold", 0.5).get_parameter_value().double_value
         )
         use_half_precision = (
-            self.declare_parameter("use_half_precision", True)
-            .get_parameter_value()
-            .bool_value
+            self.declare_parameter("use_half_precision", True).get_parameter_value().bool_value
         )
         self.text_prompts: list[str] = list(
             self.declare_parameter(
@@ -64,9 +54,7 @@ class SAM3(rclpy.node.Node):
             .string_array_value
         )
         self.publish_result_image = (
-            self.declare_parameter("publish_result_image", True)
-            .get_parameter_value()
-            .bool_value
+            self.declare_parameter("publish_result_image", True).get_parameter_value().bool_value
         )
 
         self.add_on_set_parameters_callback(self._on_set_parameters_callback)
@@ -92,9 +80,7 @@ class SAM3(rclpy.node.Node):
 
         self.cv_bridge = cv_bridge.CvBridge()
 
-        self.mask_image_pub = self.create_publisher(
-            sensor_msgs.msg.Image, "~/mask_image", 1
-        )
+        self.mask_image_pub = self.create_publisher(sensor_msgs.msg.Image, "~/mask_image", 1)
         self.mask_image_compressed_pub = self.create_publisher(
             sensor_msgs.msg.CompressedImage, "~/mask_image/compressed", 1
         )
@@ -115,9 +101,7 @@ class SAM3(rclpy.node.Node):
             rclpy.qos.qos_profile_sensor_data,
         )
 
-        self.result_image_pub = self.create_publisher(
-            sensor_msgs.msg.Image, "~/result_image", 1
-        )
+        self.result_image_pub = self.create_publisher(sensor_msgs.msg.Image, "~/result_image", 1)
         self.result_image_compressed_pub = self.create_publisher(
             sensor_msgs.msg.CompressedImage, "~/result_image/compressed", 1
         )
@@ -140,9 +124,7 @@ class SAM3(rclpy.node.Node):
         image = self.cv_bridge.imgmsg_to_cv2(msg)
         self._run_inference(image, msg.header)
 
-    def _run_inference(
-        self, image: npt.NDArray[np.uint8], header: std_msgs.msg.Header
-    ) -> None:
+    def _run_inference(self, image: npt.NDArray[np.uint8], header: std_msgs.msg.Header) -> None:
         if len(self.text_prompts) == 0:
             self.get_logger().error("No text prompts specified")
             return
@@ -150,13 +132,9 @@ class SAM3(rclpy.node.Node):
         start = time.time_ns()
 
         self.model.set_image(image)
-        results: ultralytics.engine.results.Results = self.model(
-            text=self.text_prompts
-        )[0]
+        results: ultralytics.engine.results.Results = self.model(text=self.text_prompts)[0]
 
-        self.get_logger().debug(
-            f"Inference time: {(time.time_ns() - start) / 1e6:.3f} ms"
-        )
+        self.get_logger().debug(f"Inference time: {(time.time_ns() - start) / 1e6:.3f} ms")
 
         self.result_queue.put(SAM3.Result(header, results))
 
@@ -179,10 +157,7 @@ class SAM3(rclpy.node.Node):
 
             masks = typing.cast(torch.Tensor, result.results.masks.data)
             mask_image = (
-                (
-                    (masks > 0.5).unsqueeze(3)
-                    * (result.results.boxes.cls[:, None, None, None] + 1)
-                )
+                ((masks > 0.5).unsqueeze(3) * (result.results.boxes.cls[:, None, None, None] + 1))
                 .max(0)
                 .values
             )
@@ -191,9 +166,7 @@ class SAM3(rclpy.node.Node):
                 detections, mask_image.cpu().numpy().astype(np.uint8), result.results
             )
 
-            self.get_logger().debug(
-                f"Publish time: {(time.time_ns() - start) / 1e6:.3f} ms"
-            )
+            self.get_logger().debug(f"Publish time: {(time.time_ns() - start) / 1e6:.3f} ms")
 
     def _build_detections(
         self,
@@ -237,14 +210,10 @@ class SAM3(rclpy.node.Node):
     ) -> None:
         self.detections_pub.publish(detections)
 
-        mask_image_msg = self.cv_bridge.cv2_to_imgmsg(
-            mask_image, header=detections.header
-        )
+        mask_image_msg = self.cv_bridge.cv2_to_imgmsg(mask_image, header=detections.header)
         self.mask_image_pub.publish(mask_image_msg)
 
-        mask_image_compressed_msg = self.cv_bridge.cv2_to_compressed_imgmsg(
-            mask_image, "png"
-        )
+        mask_image_compressed_msg = self.cv_bridge.cv2_to_compressed_imgmsg(mask_image, "png")
         mask_image_compressed_msg.header = detections.header
         self.mask_image_compressed_pub.publish(mask_image_compressed_msg)
 
@@ -252,18 +221,12 @@ class SAM3(rclpy.node.Node):
             return
 
         resize_ratio = 640 / max(results.orig_shape)
-        result_image = cv2.resize(
-            results.plot(), dsize=None, fx=resize_ratio, fy=resize_ratio
-        )
+        result_image = cv2.resize(results.plot(), dsize=None, fx=resize_ratio, fy=resize_ratio)
 
-        result_image_msg = self.cv_bridge.cv2_to_imgmsg(
-            result_image, header=detections.header
-        )
+        result_image_msg = self.cv_bridge.cv2_to_imgmsg(result_image, header=detections.header)
         self.result_image_pub.publish(result_image_msg)
 
-        result_image_compressed_msg = self.cv_bridge.cv2_to_compressed_imgmsg(
-            result_image, "jpg"
-        )
+        result_image_compressed_msg = self.cv_bridge.cv2_to_compressed_imgmsg(result_image, "jpg")
         result_image_compressed_msg.header = detections.header
         self.result_image_compressed_pub.publish(result_image_compressed_msg)
 
