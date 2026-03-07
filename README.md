@@ -31,6 +31,17 @@ cd ~/ros2_ws
 colcon build --symlink-install
 ```
 
+> [!NOTE]
+> If you want to run the nodes on Jetson devices, you need to install `torch` and `torchvision` with Jetson-compatible versions. Get the URL for the appropriate wheel files [here](https://pypi.jetson-ai-lab.io/jp6/cu126) and run the following commands:
+> ```bash
+> cd ~/ros2_ws/src/ultralytics_ros
+> uv add --no-sync <url to torch whl>
+> uv add --no-sync <url to torchvision whl>
+> cd ~/ros2_ws
+> colcon build --symlink-install
+> ```
+
+
 ## 💻 Usage
 
 ### SAM 3
@@ -47,7 +58,7 @@ source ~/ros2_ws/install/local_setup.bash
 ros2 run ultralytics_ros sam3_segmentation_node \
   --ros-args \
   -p model_file:="/path/to/sam3.pt" \
-  -p text_prompt:="['person', 'car']"
+  -p text_prompts:="['person', 'car']"
 ```
 
 ### YOLO Segmentation
@@ -68,7 +79,7 @@ source ~/ros2_ws/install/local_setup.bash
 ros2 run ultralytics_ros yolo_segmentation_node \
   --ros-args \
   -p model_file:="yoloe-26l-seg.pt" \
-  -p text_prompt:="['dog', 'cat']"
+  -p text_prompts:="['dog', 'cat']"
 ```
 
 ## 📦 Nodes
