@@ -33,6 +33,7 @@ colcon build --symlink-install
 
 > [!NOTE]
 > If you want to run the nodes on Jetson devices, you need to install `torch` and `torchvision` with Jetson-compatible versions. Get the URL for the appropriate wheel files [here](https://pypi.jetson-ai-lab.io/jp6/cu126) and run the following commands:
+>
 > ```bash
 > cd ~/ros2_ws/src/ultralytics_ros
 > uv add --no-sync <url to torch whl>
@@ -40,7 +41,6 @@ colcon build --symlink-install
 > cd ~/ros2_ws
 > colcon build --symlink-install
 > ```
-
 
 ## 💻 Usage
 
